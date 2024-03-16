@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 from typing import Any, Callable, List
 from inspect import Signature, Parameter
 from sqlite3 import OperationalError
@@ -9,14 +9,9 @@ from starlette.responses import Response
 from data_model_orm import DataModel
 
 
-class Annotation(BaseModel):
-    type_: type
-    default: Any = None
-
-
 def generate_function(
     function_name: str,
-    parameters: dict[str, Annotation],
+    parameters: dict,
     action: Callable,
     description: str = None,
 ) -> Callable:
@@ -35,8 +30,8 @@ def generate_function(
             Parameter(
                 name=name,
                 kind=Parameter.POSITIONAL_OR_KEYWORD,
-                annotation=annotation.type_,
-                default=annotation.default,
+                annotation=annotation["type_"],
+                default=annotation["default"],
             )
             for name, annotation in parameters.items()
         ]
@@ -78,7 +73,10 @@ class DataModelRouter(APIRouter):
             generate_function(
                 function_name="get_all_where",
                 parameters={
-                    field_name: Annotation(type_=field.annotation, default=None)
+                    field_name: {
+                        "type_": field.annotation,
+                        "default": None,
+                    }
                     for field_name, field in self.data_model.model_fields.items()
                 },
                 action=get_all_where,
@@ -104,7 +102,10 @@ class DataModelRouter(APIRouter):
             generate_function(
                 function_name="get_one_where",
                 parameters={
-                    field_name: Annotation(type_=field.annotation, default=None)
+                    field_name: {
+                        "type_": field.annotation,
+                        "default": None,
+                    }
                     for field_name, field in self.data_model.model_fields.items()
                 },
                 action=get_one_where,
@@ -130,7 +131,10 @@ class DataModelRouter(APIRouter):
             generate_function(
                 function_name="save",
                 parameters={
-                    field_name: Annotation(type_=field.annotation, default=None)
+                    field_name: {
+                        "type_": field.annotation,
+                        "default": None,
+                    }
                     for field_name, field in self.data_model.model_fields.items()
                 },
                 action=save,
@@ -165,10 +169,10 @@ class DataModelRouter(APIRouter):
             generate_function(
                 function_name="delete",
                 parameters={
-                    primary_key: Annotation(
-                        type_=data_model.model_fields[primary_key].annotation,
-                        default=None,
-                    )
+                    primary_key: {
+                        "type_": data_model.model_fields[primary_key].annotation,
+                        "default": None,
+                    }
                 },
                 action=delete,
             ),
@@ -182,10 +186,10 @@ class DataModelRouter(APIRouter):
             generate_function(
                 function_name="get",
                 parameters={
-                    primary_key: Annotation(
-                        type_=data_model.model_fields[primary_key].annotation,
-                        default=None,
-                    )
+                    primary_key: {
+                        "type_": data_model.model_fields[primary_key].annotation,
+                        "default": None,
+                    }
                 },
                 action=get_one_where,
             ),
@@ -223,10 +227,10 @@ class DataModelRouter(APIRouter):
                 generate_function(
                     function_name=f"get_{field_name}",
                     parameters={
-                        primary_key: Annotation(
-                            type_=data_model.model_fields[primary_key].annotation,
-                            default=None,
-                        )
+                        primary_key: {
+                            "type_": data_model.model_fields[primary_key].annotation,
+                            "default": None,
+                        }
                     },
                     action=create_get_field_value_fn(field_name),
                 ),
@@ -262,11 +266,14 @@ class DataModelRouter(APIRouter):
                 generate_function(
                     function_name=f"set_{field_name}",
                     parameters={
-                        primary_key: Annotation(
-                            type_=data_model.model_fields[primary_key].annotation,
-                            default=None,
-                        ),
-                        field_name: Annotation(type_=field.annotation, default=None),
+                        primary_key: {
+                            "type_": data_model.model_fields[primary_key].annotation,
+                            "default": None,
+                        },
+                        field_name: {
+                            "type_": field.annotation,
+                            "default": None
+                        },
                     },
                     action=create_set_field_value_fn(field_name),
                 ),
