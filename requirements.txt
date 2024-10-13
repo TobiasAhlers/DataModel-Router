@@ -3,7 +3,7 @@ anyio==4.3.0
 colorama==0.4.6
 datamodel_orm @ git+https://github.com/TobiasAhlers/DataModel-ORM@f640bd090babd37631b61d53ce8e44b109701e59
 fastapi==0.110.0
-idna==3.6
+idna==3.7
 iniconfig==2.0.0
 packaging==24.0
 pluggy==1.4.0
