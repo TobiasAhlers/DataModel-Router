@@ -1,10 +1,8 @@
 annotated-types==0.7.0
 anyio==4.6.2.post1
 certifi==2024.8.30
-click==8.1.7
 colorama==0.4.6
--e git+https://github.com/TobiasAhlers/DataModel-Router.git@01f232d8fd5ecf6cb1f91c15b73146cfe735eb2b#egg=datamodel_router
-datamodel_orm @ git+https://github.com/TobiasAhlers/DataModel-ORM@04aa3414ab1a5761877597a3e926365a4cf03dbe
+datamodel_orm @ git+https://github.com/TobiasAhlers/DataModel-ORM
 fastapi==0.115.4
 h11==0.14.0
 httpcore==1.0.6
@@ -21,4 +19,3 @@ SQLAlchemy==2.0.36
 sqlmodel==0.0.22
 starlette==0.41.2
 typing_extensions==4.12.2
-uvicorn==0.32.0
