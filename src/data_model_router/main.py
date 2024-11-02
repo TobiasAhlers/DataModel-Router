@@ -9,8 +9,14 @@ from .utils import extract_and_validate_query_params, generate_function
 
 
 class DataModelRouter(APIRouter):
-    def __init__(self, data_model: DataModel, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self, data_model: DataModel, prefix: str | None = None, *args, **kwargs
+    ) -> None:
+        super().__init__(
+            prefix=prefix if prefix is not None else f"/{data_model.__name__.lower()}",
+            *args,
+            **kwargs,
+        )
         self.data_model = data_model
 
         def get_all_where(request: Request, *args, **kwargs) -> List[DataModel]:
