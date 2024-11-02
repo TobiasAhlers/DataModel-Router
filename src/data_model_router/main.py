@@ -1,56 +1,11 @@
-from pydantic import ValidationError
-from typing import Any, Callable, List
-from inspect import Signature, Parameter
-from sqlite3 import OperationalError
+from typing import Any, List
 
 from fastapi import APIRouter, HTTPException, Request
 from starlette.responses import Response
 
 from data_model_orm import DataModel
 
-
-def generate_function(
-    function_name: str,
-    parameters: dict,
-    action: Callable,
-    description: str = None,
-) -> Callable:
-    def generated_function(request: Request, *args, **kwargs):
-        return action(request=request, *args, **kwargs)
-
-    generated_function.__doc__ = description
-    generated_function.__name__ = function_name
-    generated_function.__signature__ = Signature(
-        parameters=[
-            Parameter(
-                name="request", kind=Parameter.POSITIONAL_OR_KEYWORD, annotation=Request
-            )
-        ]
-        + [
-            Parameter(
-                name=name,
-                kind=Parameter.POSITIONAL_OR_KEYWORD,
-                annotation=annotation["type_"],
-                default=annotation["default"],
-            )
-            for name, annotation in parameters.items()
-        ]
-    )
-    return generated_function
-
-
-def extract_and_validate_query_params(
-    request: Request, data_model: type[DataModel]
-) -> dict[str, Any]:
-    where = {}
-    for query_param in request.query_params:
-        if query_param not in data_model.model_fields:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid query parameter: {query_param}",
-            )
-        where[query_param] = request.query_params[query_param]
-    return where
+from .utils import extract_and_validate_query_params, generate_function
 
 
 class DataModelRouter(APIRouter):
@@ -59,14 +14,9 @@ class DataModelRouter(APIRouter):
         self.data_model = data_model
 
         def get_all_where(request: Request, *args, **kwargs) -> List[DataModel]:
-            try:
-                return self.data_model.get_all(
-                    **extract_and_validate_query_params(request, self.data_model)
-                )
-            except OperationalError as e:
-                print(e)
-                # TODO: Change Error handling for security reasons
-                raise HTTPException(status_code=400, detail=str(e))
+            return self.data_model.get_all(
+                **extract_and_validate_query_params(request, self.data_model)
+            )
 
         self.add_api_route(
             "/",
@@ -88,14 +38,15 @@ class DataModelRouter(APIRouter):
         )
 
         def get_one_where(request: Request, *args, **kwargs) -> DataModel | None:
-            try:
-                return self.data_model.get_one(
-                    **extract_and_validate_query_params(request, self.data_model)
+            result = self.data_model.get_one(
+                **extract_and_validate_query_params(request, self.data_model)
+            )
+            if result is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"No {data_model.__name__} entry found with the provided query parameters.",
                 )
-            except OperationalError as e:
-                print(e)
-                # TODO: Change Error handling for security reasons
-                raise HTTPException(status_code=400, detail=str(e))
+            return result
 
         self.add_api_route(
             "/get_one",
@@ -117,14 +68,21 @@ class DataModelRouter(APIRouter):
         )
 
         def save(request: Request, *args, **kwargs) -> DataModel:
-            try:
-                data = data_model.model_validate(
-                    extract_and_validate_query_params(request, self.data_model)
+            query_params = extract_and_validate_query_params(request, self.data_model)
+            if self.data_model.get_primary_key() in query_params:
+                data = self.data_model.get_one(
+                    **{
+                        self.data_model.get_primary_key(): query_params[
+                            self.data_model.get_primary_key()
+                        ]
+                    }
                 )
-                data.save()
-                return data
-            except ValidationError as e:
-                raise HTTPException(status_code=400, detail=str(e))
+                for key, value in query_params.items():
+                    setattr(data, key, value)
+            else:
+                data = self.data_model(**query_params)
+            data.save()
+            return data
 
         self.add_api_route(
             "/save",
@@ -148,21 +106,15 @@ class DataModelRouter(APIRouter):
         primary_key = data_model.get_primary_key()
 
         def delete(request: Request, **kwargs) -> Response:
-            try:
-                data = self.data_model.get_one(**kwargs)
-                if data is None:
-                    raise HTTPException(
-                        status_code=404,
-                        detail=f"No {data_model.__name__} entry with {primary_key} {kwargs[primary_key]}",
-                    )
-                data.delete()
 
-                return Response(
-                    status_code=200,
-                    content=f"{data_model.__name__} entry deleted successfully.",
+            data = self.data_model.get_one(**{primary_key: kwargs[primary_key]})
+            if data is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"No {data_model.__name__} entry with {primary_key} {kwargs[primary_key]}",
                 )
-            except OperationalError as e:
-                print(e)
+            data.delete()
+            return Response(status_code=204)
 
         self.add_api_route(
             f"/{{{primary_key}}}/",
@@ -205,20 +157,13 @@ class DataModelRouter(APIRouter):
 
             def create_get_field_value_fn(field_name):
                 def get_field_value(request: Request, *args, **kwargs) -> Any:
-                    try:
-                        data = self.data_model.get_one(
-                            **extract_and_validate_query_params(
-                                request, self.data_model
-                            )
+                    data = self.data_model.get_one(**{primary_key: kwargs[primary_key]})
+                    if data is None:
+                        raise HTTPException(
+                            status_code=404,
+                            detail=f"No {data_model.__name__} entry with {primary_key} {kwargs[primary_key]}",
                         )
-                        if data is None:
-                            raise HTTPException(
-                                status_code=404,
-                                detail=f"No {data_model.__name__} entry with {primary_key} {kwargs[primary_key]}",
-                            )
-                        return getattr(data, field_name)
-                    except OperationalError as e:
-                        print(e)
+                    return {field_name: getattr(data, field_name)}
 
                 return get_field_value
 
@@ -236,28 +181,22 @@ class DataModelRouter(APIRouter):
                 ),
                 methods=["GET"],
                 tags=[data_model.__name__],
-                response_model=field.annotation,
+                response_model=dict[str, field.annotation],
                 description=f"Return the {field_name} of the {data_model.__name__} entry with the provided {primary_key}.",
             )
 
             def create_set_field_value_fn(field_name: str):
                 def set_field_value(request: Request, **kwargs):
-                    try:
-                        data = self.data_model.get_one(
-                            **{primary_key: kwargs[primary_key]}
+
+                    data = self.data_model.get_one(**{primary_key: kwargs[primary_key]})
+                    if data is None:
+                        raise HTTPException(
+                            status_code=404,
+                            detail=f"No {data_model.__name__} entry with {primary_key} {kwargs[primary_key]}",
                         )
-                        if data is None:
-                            raise HTTPException(
-                                status_code=404,
-                                detail=f"No {data_model.__name__} entry with {primary_key} {kwargs[primary_key]}",
-                            )
-                        setattr(data, field_name, kwargs[field_name])
-                        data.save()
-                        return data
-                    except ValidationError as e:
-                        raise HTTPException(status_code=400, detail=str(e))
-                    except OperationalError as e:
-                        print(e)
+                    setattr(data, field_name, kwargs[field_name])
+                    data.save()
+                    return data
 
                 return set_field_value
 
@@ -270,10 +209,7 @@ class DataModelRouter(APIRouter):
                             "type_": data_model.model_fields[primary_key].annotation,
                             "default": None,
                         },
-                        field_name: {
-                            "type_": field.annotation,
-                            "default": None
-                        },
+                        field_name: {"type_": field.annotation, "default": None},
                     },
                     action=create_set_field_value_fn(field_name),
                 ),
