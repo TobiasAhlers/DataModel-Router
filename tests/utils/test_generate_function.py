@@ -1,7 +1,7 @@
 import pytest
 
 from fastapi import Request
-from src.data_model_router.utils import generate_function
+from data_model_router.utils import generate_function
 from inspect import Signature, Parameter
 
 
