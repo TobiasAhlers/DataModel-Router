@@ -17,7 +17,7 @@ classifiers = [
 ]
 dependencies = [
   "fastapi",
-  "datamodel_orm @ git+https://github.com/TobiasAhlers/DataModel-ORM",
+  "datamodel-orm",
 ]
 
 [project.urls]

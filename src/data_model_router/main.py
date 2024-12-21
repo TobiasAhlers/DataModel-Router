@@ -88,6 +88,7 @@ class DataModelRouter(APIRouter):
             else:
                 data = self.data_model(**query_params)
             data.save()
+            data = data.model_validate(data)
             return data
 
         self.add_api_route(
