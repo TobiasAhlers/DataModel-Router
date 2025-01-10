@@ -10,7 +10,7 @@ from .utils import extract_and_validate_query_params, generate_function
 
 class DataModelRouter(APIRouter):
     def __init__(
-        self, data_model: DataModel, prefix: str | None = None, *args, **kwargs
+        self, data_model: type[DataModel], prefix: str | None = None, *args, **kwargs
     ) -> None:
         super().__init__(
             prefix=prefix if prefix is not None else f"/{data_model.__name__.lower()}",
@@ -83,6 +83,8 @@ class DataModelRouter(APIRouter):
                         ]
                     }
                 )
+                if data is None:
+                    data = self.data_model(**query_params)
                 for key, value in query_params.items():
                     setattr(data, key, value)
             else:
