@@ -46,3 +46,29 @@ def test_multiple_models(client: TestClient):
     )
     assert response.status_code == 200
     assert response.json() == {"id": 2, "country": "USA", "city": "New York"}
+
+
+def test_create_new_model(client: TestClient):
+    """
+    Test that a new model is created when the primary key is not provided.
+    """
+    response = client.post(
+        "testdatamodel2/save", params={"country": "USA", "city": "New York"}
+    )
+    assert response.status_code == 200
+
+    response = client.get("testdatamodel2/get_one", params={"id": 1})
+    assert response.status_code == 200
+
+
+def test_save_new_with_id(client: TestClient):
+    """
+    Test that a new model is created with the provided primary key.
+    """
+    response = client.post(
+        "testdatamodel2/save", params={"id": 3, "country": "USA", "city": "New York"}
+    )
+    assert response.status_code == 200
+
+    response = client.get("testdatamodel2/get_one", params={"id": 1})
+    assert response.status_code == 200
