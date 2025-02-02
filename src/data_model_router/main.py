@@ -2,6 +2,7 @@ from typing import Any, List
 
 from fastapi import APIRouter, HTTPException, Request
 from starlette.responses import Response
+from pydantic import ValidationError
 
 from data_model_orm import DataModel
 
@@ -18,6 +19,7 @@ class DataModelRouter(APIRouter):
             **kwargs,
         )
         self.data_model = data_model
+        self.primary_key = data_model.get_primary_key()
 
         def get_all_where(request: Request, *args, **kwargs) -> List[DataModel]:
             return self.data_model.get_all(
@@ -40,8 +42,37 @@ class DataModelRouter(APIRouter):
             methods=["GET"],
             tags=[data_model.__name__],
             response_model=List[self.data_model],
+            name=f"Search {data_model.__name__}",
             description=f"Return all {data_model.__name__} entries where the query parameters match the fields of the model. If no query parameters are provided, all {data_model.__name__} entries will be returned.",
+            operation_id=f"search_{data_model.__name__.lower()}",
         )
+
+        @self.post(
+            "/",
+            response_model=self.data_model,
+            tags=[data_model.__name__],
+            description=f"Create a new {data_model.__name__} entry.",
+            operation_id=f"create_{data_model.__name__.lower()}",
+            name=f"Create new {data_model.__name__}",
+            status_code=201,
+        )
+        def create(data: self.data_model) -> DataModel:
+            try:
+                data = self.data_model.model_validate(data)
+            except ValidationError as e:
+                raise HTTPException(status_code=422, detail=e.errors())
+            if (
+                self.data_model.get_one(
+                    **{self.primary_key: getattr(data, self.primary_key)}
+                )
+                is not None
+            ):
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"Data already exists with {self.primary_key} {getattr(data, self.primary_key)}",
+                )
+            data.save()
+            return data
 
         def get_one_where(request: Request, *args, **kwargs) -> DataModel | None:
             result = self.data_model.get_one(
