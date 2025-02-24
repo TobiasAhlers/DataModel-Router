@@ -19,6 +19,13 @@ dependencies = [
   "fastapi",
   "datamodel-orm",
 ]
+[project.optional-dependencies]
+test = [
+  "pytest",
+  "pytest-cov",
+  "httpx",
+  "setuptools"
+]
 
 [project.urls]
 Homepage = "https://github.com/TobiasAhlers/DataModel-Router"
