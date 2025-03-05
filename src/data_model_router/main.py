@@ -21,7 +21,7 @@ class DataModelRouter(APIRouter):
         self.data_model = data_model
         self.primary_key = data_model.get_primary_key()
 
-        def get_all_where(request: Request, *args, **kwargs) -> List[DataModel]:
+        def search(request: Request, *args, **kwargs) -> List[DataModel]:
             return self.data_model.get_all(
                 **extract_and_validate_query_params(request, self.data_model)
             )
@@ -29,7 +29,7 @@ class DataModelRouter(APIRouter):
         self.add_api_route(
             "/",
             generate_function(
-                function_name="get_all_where",
+                function_name="search",
                 parameters={
                     field_name: {
                         "type_": field.annotation,
@@ -37,7 +37,7 @@ class DataModelRouter(APIRouter):
                     }
                     for field_name, field in self.data_model.model_fields.items()
                 },
-                action=get_all_where,
+                action=search,
             ),
             methods=["GET"],
             tags=[data_model.__name__],
