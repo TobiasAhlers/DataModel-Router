@@ -21,7 +21,7 @@ class DataModelRouter(APIRouter):
         self.data_model = data_model
         self.primary_key = data_model.get_primary_key()
 
-        def get_all_where(request: Request, *args, **kwargs) -> List[DataModel]:
+        def search(request: Request, *args, **kwargs) -> List[DataModel]:
             return self.data_model.get_all(
                 **extract_and_validate_query_params(request, self.data_model)
             )
@@ -29,7 +29,7 @@ class DataModelRouter(APIRouter):
         self.add_api_route(
             "/",
             generate_function(
-                function_name="get_all_where",
+                function_name="search",
                 parameters={
                     field_name: {
                         "type_": field.annotation,
@@ -37,7 +37,7 @@ class DataModelRouter(APIRouter):
                     }
                     for field_name, field in self.data_model.model_fields.items()
                 },
-                action=get_all_where,
+                action=search,
             ),
             methods=["GET"],
             tags=[data_model.__name__],
@@ -73,36 +73,6 @@ class DataModelRouter(APIRouter):
                 )
             data.save()
             return data
-
-        def get_one_where(request: Request, *args, **kwargs) -> DataModel | None:
-            result = self.data_model.get_one(
-                **extract_and_validate_query_params(request, self.data_model)
-            )
-            if result is None:
-                raise HTTPException(
-                    status_code=404,
-                    detail=f"No {data_model.__name__} entry found with the provided query parameters.",
-                )
-            return result
-
-        self.add_api_route(
-            "/get_one",
-            generate_function(
-                function_name="get_one_where",
-                parameters={
-                    field_name: {
-                        "type_": field.annotation,
-                        "default": None,
-                    }
-                    for field_name, field in self.data_model.model_fields.items()
-                },
-                action=get_one_where,
-            ),
-            methods=["GET"],
-            tags=[data_model.__name__],
-            response_model=self.data_model | None,
-            description=f"Return the first {data_model.__name__} entry where the query parameters match the fields of the model. If no query parameters are provided, the first {data_model.__name__} entry will be returned.",
-        )
 
         def save(request: Request, *args, **kwargs) -> DataModel:
             query_params = extract_and_validate_query_params(request, self.data_model)
@@ -183,7 +153,7 @@ class DataModelRouter(APIRouter):
                         "default": None,
                     }
                 },
-                action=get_one_where,
+                action=self.data_model.get_one,
             ),
             methods=["GET"],
             tags=[data_model.__name__],

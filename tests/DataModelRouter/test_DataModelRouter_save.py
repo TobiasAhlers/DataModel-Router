@@ -28,9 +28,7 @@ def test_save_update(client: TestClient):
     )
     assert response.status_code == 200
     assert response.json() == {"id": 1, "name": "Alice", "age": 35}
-    response = client.get("testdatamodel/get_one", params={"id": 1})
-    assert response.status_code == 200
-    assert response.json() == {"id": 1, "name": "Alice", "age": 35}
+    assert TestDataModel.get_one(id=1) == TestDataModel(id=1, name="Alice", age=35)
 
 
 def test_multiple_models(client: TestClient):
@@ -57,8 +55,7 @@ def test_create_new_model(client: TestClient):
     )
     assert response.status_code == 200
 
-    response = client.get("testdatamodel2/get_one", params={"id": 1})
-    assert response.status_code == 200
+    assert TestDataModel2.get_one(id=1) == TestDataModel2(id=1, country="USA", city="New York")
 
 
 def test_save_new_with_id(client: TestClient):
@@ -70,5 +67,4 @@ def test_save_new_with_id(client: TestClient):
     )
     assert response.status_code == 200
 
-    response = client.get("testdatamodel2/get_one", params={"id": 1})
-    assert response.status_code == 200
+    assert TestDataModel2.get_one(id=3) == TestDataModel2(id=3, country="USA", city="New York")

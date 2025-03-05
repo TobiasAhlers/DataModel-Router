@@ -1,7 +1,7 @@
 from conftest import *
 
 
-def test_get_all_where_valid(client: TestClient):
+def test_search_valid(client: TestClient):
     """
     Test that valid query parameters return the expected data.
     """
@@ -10,7 +10,7 @@ def test_get_all_where_valid(client: TestClient):
     assert response.json() == [{"id": 1, "name": "Alice", "age": 30}]
 
 
-def test_get_all_where_invalid(client: TestClient):
+def test_search_invalid(client: TestClient):
     """
     Test that an HTTPException is raised when invalid query parameters are provided.
     """
