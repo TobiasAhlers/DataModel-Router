@@ -143,6 +143,15 @@ class DataModelRouter(APIRouter):
             description=f"Deletes the {data_model.__name__} entry with the provided {primary_key}.",
         )
 
+        def get_entry_by_id(request: Request, **kwargs) -> DataModel | None:
+            data = self.data_model.get_one(**{primary_key: kwargs[primary_key]})
+            if data is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"No {data_model.__name__} entry with {primary_key} {kwargs[primary_key]}",
+                )
+            return data
+
         self.add_api_route(
             f"/{{{primary_key}}}/",
             generate_function(
@@ -153,7 +162,7 @@ class DataModelRouter(APIRouter):
                         "default": None,
                     }
                 },
-                action=self.data_model.get_one,
+                action=get_entry_by_id,
             ),
             methods=["GET"],
             tags=[data_model.__name__],
