@@ -74,36 +74,6 @@ class DataModelRouter(APIRouter):
             data.save()
             return data
 
-        def get_one_where(request: Request, *args, **kwargs) -> DataModel | None:
-            result = self.data_model.get_one(
-                **extract_and_validate_query_params(request, self.data_model)
-            )
-            if result is None:
-                raise HTTPException(
-                    status_code=404,
-                    detail=f"No {data_model.__name__} entry found with the provided query parameters.",
-                )
-            return result
-
-        self.add_api_route(
-            "/get_one",
-            generate_function(
-                function_name="get_one_where",
-                parameters={
-                    field_name: {
-                        "type_": field.annotation,
-                        "default": None,
-                    }
-                    for field_name, field in self.data_model.model_fields.items()
-                },
-                action=get_one_where,
-            ),
-            methods=["GET"],
-            tags=[data_model.__name__],
-            response_model=self.data_model | None,
-            description=f"Return the first {data_model.__name__} entry where the query parameters match the fields of the model. If no query parameters are provided, the first {data_model.__name__} entry will be returned.",
-        )
-
         def save(request: Request, *args, **kwargs) -> DataModel:
             query_params = extract_and_validate_query_params(request, self.data_model)
             if self.data_model.get_primary_key() in query_params:
@@ -183,7 +153,7 @@ class DataModelRouter(APIRouter):
                         "default": None,
                     }
                 },
-                action=get_one_where,
+                action=self.data_model.get_one,
             ),
             methods=["GET"],
             tags=[data_model.__name__],

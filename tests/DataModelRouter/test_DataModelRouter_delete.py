@@ -7,11 +7,6 @@ def test_delete_existing(client: TestClient):
     """
     response = client.delete("testdatamodel/1/")
     assert response.status_code == 204
-    response = client.get("testdatamodel/get_one", params={"id": 1})
-    assert response.status_code == 404
-    assert response.json() == {
-        "detail": "No TestDataModel entry found with the provided query parameters."
-    }
     assert TestDataModel.get_all(id=1) == []
 
 
