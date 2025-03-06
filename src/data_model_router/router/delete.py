@@ -1,5 +1,5 @@
 from data_model_orm import DataModel
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException, Response
 
 from ..utils import generate_function
 
@@ -29,6 +29,7 @@ class DeleteRouter(APIRouter):
                     detail=f"No {data_model.__name__} entry with {primary_key} {kwargs[primary_key]}",
                 )
             data.delete()
+            return Response(status_code=204)
 
         self.add_api_route(
             f"/{{{primary_key}}}/",
