@@ -28,7 +28,7 @@ class SearchRouter(APIRouter):
                 List[DataModel]: A list of DataModel objects that match the query parameters.
             """
             return data_model.get_all(
-                **extract_and_validate_query_params(request, self.data_model)
+                **extract_and_validate_query_params(request, data_model)
             )
 
         self.add_api_route(
