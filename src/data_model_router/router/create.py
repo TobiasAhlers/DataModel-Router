@@ -34,7 +34,7 @@ class CreateRouter(APIRouter):
             ):
                 raise HTTPException(
                     status_code=409,
-                    detail=f"Data already exists with {primary_key} {getattr(data, self.primary_key)}",
+                    detail=f"Data already exists with {primary_key} {getattr(data, primary_key)}",
                 )
             data.save()
             return data
