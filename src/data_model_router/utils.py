@@ -1,5 +1,5 @@
 from typing import Any, Callable
-from inspect import Signature, Parameter
+from inspect import Signature, Parameter, _empty
 
 from fastapi import HTTPException, Request
 
@@ -41,7 +41,7 @@ def generate_function(
                 name=name,
                 kind=Parameter.POSITIONAL_OR_KEYWORD,
                 annotation=annotation["type_"],
-                default=annotation["default"],
+                default=annotation["default"] if "default" in annotation else _empty,
             )
             for name, annotation in parameters.items()
         ]
