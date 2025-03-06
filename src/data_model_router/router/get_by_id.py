@@ -47,5 +47,5 @@ class GetByIdRouter(APIRouter):
             response_model=data_model,
             name=f"Get {data_model.__name__} by ID",
             description=f"Return the {data_model.__name__} entry with the provided {primary_key}.",
-            operation_id=f"get_{data_model.__name__.lower()}_by_id",
+            operation_id=f"get_{data_model.__name__.lower()}_by_{primary_key.lower()}",
         )
