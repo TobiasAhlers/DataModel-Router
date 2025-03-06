@@ -23,7 +23,7 @@ class CreateRouter(APIRouter):
             name=f"Create new {data_model.__name__}",
             status_code=201,
         )
-        def create(data: type[DataModel]) -> DataModel:
+        def create(data: data_model) -> DataModel: # type: ignore
             try:
                 data = data_model.model_validate(data)
             except ValidationError as e:

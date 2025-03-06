@@ -44,10 +44,19 @@ def test_create_invalid_schema(client: TestClient):
     }
 
 
-def test_create_existing(client: TestClient):
+def test_create_existing_with_id(client: TestClient):
     """
     Test that an HTTPException is raised when the primary key is provided.
     """
     response = client.post("testdatamodel/", json={"id": 1, "name": "Alice", "age": 35})
+    assert response.status_code == 409
+    assert response.json() == {"detail": "Data already exists with id 1"}
+
+
+def test_create_existing_without_id(client: TestClient):
+    """
+    Test that an HTTPException is raised when the data already exists.
+    """
+    response = client.post("testdatamodel/", json={"name": "Alice", "age": 35})
     assert response.status_code == 409
     assert response.json() == {"detail": "Data already exists with id 1"}
